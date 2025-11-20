@@ -1,0 +1,13 @@
+{
+  "name": "calle-csv-excel-converter",
+  "version": "1.0.0",
+  "description": "Plataforma Calle - Conversor de CSV a Excel con visualización de datos",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": ["csv", "excel", "converter", "data"],
+  "author": "",
+  "license": "MIT"
+}
