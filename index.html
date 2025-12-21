@@ -520,6 +520,25 @@
             color: white;
         }
 
+        .action-btn.apply {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .action-btn.apply:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn.apply.pulse {
+            animation: pulse-apply 1.5s infinite;
+        }
+
+        @keyframes pulse-apply {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+        }
+
         .action-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
@@ -697,6 +716,9 @@
                 <button class="action-btn secondary" id="resetBtn" style="display: none;">
                     🔄 Reiniciar
                 </button>
+                <button class="action-btn apply" id="applyBtn" style="display: none;">
+                    ✅ Aplicar cambios
+                </button>
                 <button class="action-btn primary" id="downloadBtn" style="display: none;">
                     💾 Descargar PDF
                 </button>
@@ -788,6 +810,7 @@
         const deleteCurrentBtn = document.getElementById('deleteCurrentBtn');
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const applyBtn = document.getElementById('applyBtn');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const loadingText = document.getElementById('loadingText');
         const toast = document.getElementById('toast');
@@ -824,6 +847,7 @@
         deleteCurrentBtn.addEventListener('click', toggleDeleteCurrentPage);
         downloadBtn.addEventListener('click', downloadModifiedPDF);
         resetBtn.addEventListener('click', resetEditor);
+        applyBtn.addEventListener('click', applyChanges);
         selectAllBtn.addEventListener('click', toggleSelectAll);
         deleteSelectedBtn.addEventListener('click', deleteAllSelected);
 
@@ -878,6 +902,8 @@
                 statsBar.style.display = 'flex';
                 downloadBtn.style.display = 'flex';
                 resetBtn.style.display = 'flex';
+                applyBtn.style.display = 'flex';
+                updateApplyButton();
 
                 // Render current page and thumbnails
                 await renderPage(currentPage);
@@ -1223,6 +1249,9 @@
             } else {
                 savingsBadge.style.display = 'none';
             }
+
+            // Update apply button state
+            updateApplyButton();
         }
 
         async function calculateEstimatedSize() {
@@ -1234,6 +1263,81 @@
             const remainingPages = totalPages - deletedPages.size;
             const estimatedSize = (originalSize * remainingPages) / totalPages;
             return estimatedSize;
+        }
+
+        function updateApplyButton() {
+            if (deletedPages.size > 0) {
+                applyBtn.disabled = false;
+                applyBtn.classList.add('pulse');
+                applyBtn.innerHTML = `✅ Aplicar cambios (${deletedPages.size})`;
+            } else {
+                applyBtn.disabled = true;
+                applyBtn.classList.remove('pulse');
+                applyBtn.innerHTML = '✅ Aplicar cambios';
+            }
+        }
+
+        async function applyChanges() {
+            if (deletedPages.size === 0) {
+                showToast('No hay páginas para eliminar', true);
+                return;
+            }
+
+            showLoading('Aplicando cambios...');
+
+            try {
+                // Use pdf-lib to remove pages and create new PDF
+                const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                    ignoreEncryption: true
+                });
+
+                // Get pages to remove (in reverse order to maintain indices)
+                const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
+
+                for (const pageNum of pagesToRemove) {
+                    pdfLibDoc.removePage(pageNum - 1);
+                }
+
+                // Save the modified PDF
+                const modifiedPdfBytes = await pdfLibDoc.save();
+
+                // Update state with new PDF
+                pdfBytes = new Uint8Array(modifiedPdfBytes);
+                originalSize = pdfBytes.length;
+
+                // Reload PDF for viewing
+                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                totalPages = pdfDoc.numPages;
+                currentPage = Math.min(currentPage, totalPages);
+
+                // Clear deleted and selected pages
+                const removedCount = deletedPages.size;
+                deletedPages.clear();
+                selectedPages.clear();
+                lastSelectedPage = null;
+
+                // Re-render everything
+                await renderPage(currentPage);
+                await generateThumbnails();
+                updateStats();
+                updateNavigation();
+                updateSelectionUI();
+                updateApplyButton();
+                updateDeleteButton();
+
+                hideLoading();
+                showToast(`${removedCount} páginas eliminadas. PDF listo para descargar.`);
+            } catch (error) {
+                console.error('Error applying changes:', error);
+                hideLoading();
+
+                let errorMsg = 'Error al aplicar cambios';
+                if (error.message && error.message.includes('encrypted')) {
+                    errorMsg = 'El PDF está encriptado y no se puede modificar';
+                }
+
+                showToast(errorMsg, true);
+            }
         }
 
         async function downloadModifiedPDF() {
@@ -1314,6 +1418,7 @@
             statsBar.style.display = 'none';
             downloadBtn.style.display = 'none';
             resetBtn.style.display = 'none';
+            applyBtn.style.display = 'none';
             thumbnailsContainer.innerHTML = '';
             fileInput.value = '';
 
