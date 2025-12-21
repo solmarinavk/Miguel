@@ -926,11 +926,12 @@
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                pdfBytes = new Uint8Array(arrayBuffer);
+                // Store original bytes - make a copy to preserve them
+                pdfBytes = new Uint8Array(arrayBuffer.slice(0));
                 originalSize = pdfBytes.length;
 
-                // Load with PDF.js for viewing
-                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                // Load with PDF.js for viewing - pass a copy so original is preserved
+                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
                 totalPages = pdfDoc.numPages;
                 currentPage = 1;
                 deletedPages.clear();
@@ -1426,7 +1427,12 @@
             try {
                 // Create a new PDF and copy only the pages we want to keep
                 // This is more robust than deleting pages
-                const srcDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                // Use slice to ensure we have a valid copy of the bytes
+                const bytesToProcess = pdfBytes.slice(0);
+                console.log('PDF bytes length:', bytesToProcess.length);
+                console.log('PDF header:', String.fromCharCode(...bytesToProcess.slice(0, 8)));
+
+                const srcDoc = await PDFLib.PDFDocument.load(bytesToProcess, {
                     ignoreEncryption: true,
                     updateMetadata: false
                 });
@@ -1451,12 +1457,15 @@
                 // Save the new PDF
                 const modifiedPdfBytes = await newDoc.save();
 
-                // Update state with new PDF
-                pdfBytes = new Uint8Array(modifiedPdfBytes);
+                // Update state with new PDF - create fresh Uint8Array
+                pdfBytes = new Uint8Array(modifiedPdfBytes.length);
+                pdfBytes.set(modifiedPdfBytes);
                 originalSize = pdfBytes.length;
 
-                // Reload PDF for viewing
-                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice() }).promise;
+                console.log('New PDF created, size:', pdfBytes.length);
+
+                // Reload PDF for viewing - pass a copy
+                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
                 totalPages = pdfDoc.numPages;
                 currentPage = Math.min(currentPage, totalPages);
                 if (currentPage < 1) currentPage = 1;
@@ -1512,7 +1521,10 @@
 
             try {
                 // Create a new PDF and copy only the pages we want to keep
-                const srcDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                const bytesToProcess = pdfBytes.slice(0);
+                console.log('Download - PDF bytes length:', bytesToProcess.length);
+
+                const srcDoc = await PDFLib.PDFDocument.load(bytesToProcess, {
                     ignoreEncryption: true,
                     updateMetadata: false
                 });
