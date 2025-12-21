@@ -820,6 +820,7 @@
         // State
         let pdfDoc = null;
         let pdfBytes = null;
+        let originalPdfBytes = null; // Never modified - backup copy
         let currentPage = 1;
         let totalPages = 0;
         let deletedPages = new Set();
@@ -926,12 +927,20 @@
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                // Store original bytes - make a copy to preserve them
+
+                // CRITICAL: Use arrayBuffer.slice(0) to create TRULY INDEPENDENT copies
+                // new Uint8Array(arrayBuffer) only creates a VIEW on the same buffer
+                // PDF.js may transfer buffer ownership, invalidating all views
+                originalPdfBytes = new Uint8Array(arrayBuffer.slice(0));
                 pdfBytes = new Uint8Array(arrayBuffer.slice(0));
                 originalSize = pdfBytes.length;
 
-                // Load with PDF.js for viewing - pass a copy so original is preserved
-                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
+                console.log('PDF loaded, size:', pdfBytes.length);
+                console.log('PDF header check:', String.fromCharCode(pdfBytes[0], pdfBytes[1], pdfBytes[2], pdfBytes[3], pdfBytes[4]));
+
+                // Load with PDF.js for viewing - use yet another independent copy
+                const dataForViewer = arrayBuffer.slice(0);
+                pdfDoc = await pdfjsLib.getDocument({ data: dataForViewer }).promise;
                 totalPages = pdfDoc.numPages;
                 currentPage = 1;
                 deletedPages.clear();
@@ -1425,12 +1434,23 @@
             await new Promise(resolve => setTimeout(resolve, 100));
 
             try {
-                // Create a new PDF and copy only the pages we want to keep
-                // This is more robust than deleting pages
-                // Use slice to ensure we have a valid copy of the bytes
-                const bytesToProcess = pdfBytes.slice(0);
-                console.log('PDF bytes length:', bytesToProcess.length);
-                console.log('PDF header:', String.fromCharCode(...bytesToProcess.slice(0, 8)));
+                // Use the current working copy of PDF bytes
+                // Check if bytes are valid
+                if (!pdfBytes || pdfBytes.length === 0) {
+                    throw new Error('No hay datos del PDF');
+                }
+
+                // Verify PDF header
+                const header = String.fromCharCode(pdfBytes[0], pdfBytes[1], pdfBytes[2], pdfBytes[3], pdfBytes[4]);
+                console.log('PDF bytes length:', pdfBytes.length);
+                console.log('PDF header:', header);
+
+                if (!header.startsWith('%PDF')) {
+                    throw new Error('Archivo PDF corrupto - header inválido: ' + header);
+                }
+
+                // Create a fresh copy for pdf-lib
+                const bytesToProcess = new Uint8Array(pdfBytes);
 
                 const srcDoc = await PDFLib.PDFDocument.load(bytesToProcess, {
                     ignoreEncryption: true,
@@ -1457,15 +1477,16 @@
                 // Save the new PDF
                 const modifiedPdfBytes = await newDoc.save();
 
-                // Update state with new PDF - create fresh Uint8Array
-                pdfBytes = new Uint8Array(modifiedPdfBytes.length);
-                pdfBytes.set(modifiedPdfBytes);
+                // Update working copy with new PDF
+                pdfBytes = new Uint8Array(modifiedPdfBytes);
                 originalSize = pdfBytes.length;
 
                 console.log('New PDF created, size:', pdfBytes.length);
+                console.log('New PDF header:', String.fromCharCode(pdfBytes[0], pdfBytes[1], pdfBytes[2], pdfBytes[3], pdfBytes[4]));
 
-                // Reload PDF for viewing - pass a copy
-                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
+                // Reload PDF for viewing - use slice to create independent copy
+                const dataForViewer = pdfBytes.buffer.slice(0);
+                pdfDoc = await pdfjsLib.getDocument({ data: dataForViewer }).promise;
                 totalPages = pdfDoc.numPages;
                 currentPage = Math.min(currentPage, totalPages);
                 if (currentPage < 1) currentPage = 1;
@@ -1520,9 +1541,21 @@
             await new Promise(resolve => setTimeout(resolve, 100));
 
             try {
-                // Create a new PDF and copy only the pages we want to keep
-                const bytesToProcess = pdfBytes.slice(0);
-                console.log('Download - PDF bytes length:', bytesToProcess.length);
+                // Verify PDF bytes are valid
+                if (!pdfBytes || pdfBytes.length === 0) {
+                    throw new Error('No hay datos del PDF');
+                }
+
+                const header = String.fromCharCode(pdfBytes[0], pdfBytes[1], pdfBytes[2], pdfBytes[3], pdfBytes[4]);
+                console.log('Download - PDF bytes length:', pdfBytes.length);
+                console.log('Download - PDF header:', header);
+
+                if (!header.startsWith('%PDF')) {
+                    throw new Error('Archivo PDF corrupto - header inválido');
+                }
+
+                // Create a fresh copy for pdf-lib
+                const bytesToProcess = new Uint8Array(pdfBytes);
 
                 const srcDoc = await PDFLib.PDFDocument.load(bytesToProcess, {
                     ignoreEncryption: true,
@@ -1589,6 +1622,7 @@
         function resetEditor() {
             pdfDoc = null;
             pdfBytes = null;
+            originalPdfBytes = null;
             currentPage = 1;
             totalPages = 0;
             deletedPages.clear();
