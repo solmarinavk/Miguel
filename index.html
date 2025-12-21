@@ -1424,28 +1424,32 @@
             await new Promise(resolve => setTimeout(resolve, 100));
 
             try {
-                // Use pdf-lib to remove pages and create new PDF
-                const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                // Create a new PDF and copy only the pages we want to keep
+                // This is more robust than deleting pages
+                const srcDoc = await PDFLib.PDFDocument.load(pdfBytes, {
                     ignoreEncryption: true,
                     updateMetadata: false
                 });
 
-                // Get pages to remove (in reverse order to maintain indices)
-                const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
-                const removedCount = pagesToRemove.length;
+                const newDoc = await PDFLib.PDFDocument.create();
 
-                console.log('Removing pages:', pagesToRemove);
-
-                for (const pageNum of pagesToRemove) {
-                    if (pageNum - 1 < pdfLibDoc.getPageCount()) {
-                        pdfLibDoc.removePage(pageNum - 1);
+                // Get indices of pages to keep (0-based)
+                const pagesToKeep = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    if (!deletedPages.has(i)) {
+                        pagesToKeep.push(i - 1); // Convert to 0-based index
                     }
                 }
 
-                // Save the modified PDF with compression
-                const modifiedPdfBytes = await pdfLibDoc.save({
-                    useObjectStreams: false
-                });
+                const removedCount = deletedPages.size;
+                console.log('Pages to keep (0-based):', pagesToKeep);
+
+                // Copy pages to new document
+                const copiedPages = await newDoc.copyPages(srcDoc, pagesToKeep);
+                copiedPages.forEach(page => newDoc.addPage(page));
+
+                // Save the new PDF
+                const modifiedPdfBytes = await newDoc.save();
 
                 // Update state with new PDF
                 pdfBytes = new Uint8Array(modifiedPdfBytes);
@@ -1507,26 +1511,30 @@
             await new Promise(resolve => setTimeout(resolve, 100));
 
             try {
-                // Use pdf-lib to remove pages
-                const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                // Create a new PDF and copy only the pages we want to keep
+                const srcDoc = await PDFLib.PDFDocument.load(pdfBytes, {
                     ignoreEncryption: true,
                     updateMetadata: false
                 });
 
-                // Get pages to remove (in reverse order to maintain indices)
-                const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
+                const newDoc = await PDFLib.PDFDocument.create();
 
-                console.log('Download - Removing pages:', pagesToRemove);
-
-                for (const pageNum of pagesToRemove) {
-                    if (pageNum - 1 < pdfLibDoc.getPageCount()) {
-                        pdfLibDoc.removePage(pageNum - 1);
+                // Get indices of pages to keep (0-based)
+                const pagesToKeep = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    if (!deletedPages.has(i)) {
+                        pagesToKeep.push(i - 1);
                     }
                 }
 
-                const modifiedPdfBytes = await pdfLibDoc.save({
-                    useObjectStreams: false
-                });
+                console.log('Download - Pages to keep:', pagesToKeep);
+
+                // Copy pages to new document
+                const copiedPages = await newDoc.copyPages(srcDoc, pagesToKeep);
+                copiedPages.forEach(page => newDoc.addPage(page));
+
+                // Save the new PDF
+                const modifiedPdfBytes = await newDoc.save();
 
                 const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
                 downloadBlob(blob, 'documento_modificado.pdf');
