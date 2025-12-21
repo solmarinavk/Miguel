@@ -67,7 +67,7 @@
         /* Stats Bar */
         .stats-bar {
             display: flex;
-            gap: 2rem;
+            gap: 1.5rem;
             align-items: center;
         }
 
@@ -75,35 +75,27 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 0.5rem 1.5rem;
+            padding: 0.5rem 1rem;
             background: rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            min-width: 120px;
+            min-width: 100px;
         }
 
         .stat-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: rgba(255, 255, 255, 0.6);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .stat-value {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: #fff;
         }
 
         .stat-value.size {
             color: #4ade80;
-        }
-
-        .stat-value.size.warning {
-            color: #fbbf24;
-        }
-
-        .stat-value.size.danger {
-            color: #ef4444;
         }
 
         .size-indicator {
@@ -127,14 +119,6 @@
             transition: all 0.3s ease;
         }
 
-        .size-bar-fill.warning {
-            background: linear-gradient(90deg, #fbbf24, #f59e0b);
-        }
-
-        .size-bar-fill.danger {
-            background: linear-gradient(90deg, #ef4444, #dc2626);
-        }
-
         /* Main Content */
         .main-content {
             display: flex;
@@ -144,7 +128,7 @@
 
         /* Sidebar - Thumbnails */
         .sidebar {
-            width: 220px;
+            width: 240px;
             background: rgba(0, 0, 0, 0.3);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
@@ -156,14 +140,62 @@
             padding: 1rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
         .sidebar-title {
             font-size: 0.875rem;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.8);
+        }
+
+        .sidebar-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .sidebar-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-btn.delete-selected {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .sidebar-btn.delete-selected:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+
+        .sidebar-btn.delete-selected:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sidebar-btn.select-all {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-btn.select-all:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .selection-hint {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            padding: 0.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
         }
 
         .thumbnails-container {
@@ -183,16 +215,26 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border: 2px solid transparent;
+            user-select: none;
         }
 
         .thumbnail-item:hover {
             background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
         }
 
         .thumbnail-item.active {
             border-color: #e94560;
             background: rgba(233, 69, 96, 0.1);
+        }
+
+        .thumbnail-item.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .thumbnail-item.selected.active {
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.15);
         }
 
         .thumbnail-item.deleted {
@@ -214,6 +256,40 @@
             font-weight: 700;
             border-radius: 4px;
             letter-spacing: 1px;
+            z-index: 10;
+        }
+
+        .thumbnail-checkbox {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 5;
+        }
+
+        .thumbnail-checkbox:hover {
+            border-color: #3b82f6;
+        }
+
+        .thumbnail-item.selected .thumbnail-checkbox {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .thumbnail-item.selected .thumbnail-checkbox::after {
+            content: '✓';
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
         }
 
         .thumbnail-canvas {
@@ -356,6 +432,8 @@
             background: rgba(0, 0, 0, 0.3);
             border-radius: 16px;
             margin-top: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .nav-btn {
@@ -535,7 +613,7 @@
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
-                width: 160px;
+                width: 180px;
             }
 
             .stats-bar {
@@ -565,6 +643,17 @@
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
+        }
+
+        /* Selection counter badge */
+        .selection-badge {
+            background: #3b82f6;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            margin-left: 0.5rem;
         }
     </style>
 </head>
@@ -619,7 +708,12 @@
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar" style="display: none;">
                 <div class="sidebar-header">
-                    <span class="sidebar-title">📑 Páginas</span>
+                    <span class="sidebar-title">📑 Páginas <span class="selection-badge" id="selectionBadge" style="display: none;">0</span></span>
+                    <div class="selection-hint">Ctrl+Click = selección múltiple | Shift+Click = rango</div>
+                    <div class="sidebar-actions">
+                        <button class="sidebar-btn select-all" id="selectAllBtn">Seleccionar todo</button>
+                        <button class="sidebar-btn delete-selected" id="deleteSelectedBtn" disabled>Eliminar (0)</button>
+                    </div>
                 </div>
                 <div class="thumbnails-container" id="thumbnailsContainer">
                     <!-- Thumbnails will be generated here -->
@@ -677,8 +771,9 @@
         let currentPage = 1;
         let totalPages = 0;
         let deletedPages = new Set();
+        let selectedPages = new Set();
+        let lastSelectedPage = null;
         let originalSize = 0;
-        let pageRenderQueue = [];
 
         // DOM Elements
         const uploadZone = document.getElementById('uploadZone');
@@ -696,6 +791,9 @@
         const loadingOverlay = document.getElementById('loadingOverlay');
         const loadingText = document.getElementById('loadingText');
         const toast = document.getElementById('toast');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const selectionBadge = document.getElementById('selectionBadge');
 
         // Event Listeners
         uploadZone.addEventListener('click', () => fileInput.click());
@@ -726,13 +824,28 @@
         deleteCurrentBtn.addEventListener('click', toggleDeleteCurrentPage);
         downloadBtn.addEventListener('click', downloadModifiedPDF);
         resetBtn.addEventListener('click', resetEditor);
+        selectAllBtn.addEventListener('click', toggleSelectAll);
+        deleteSelectedBtn.addEventListener('click', deleteAllSelected);
 
         // Keyboard navigation
         document.addEventListener('keydown', (e) => {
             if (!pdfDoc) return;
             if (e.key === 'ArrowLeft') navigatePage(-1);
             if (e.key === 'ArrowRight') navigatePage(1);
-            if (e.key === 'Delete' || e.key === 'Backspace') toggleDeleteCurrentPage();
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedPages.size > 0) {
+                    deleteAllSelected();
+                } else {
+                    toggleDeleteCurrentPage();
+                }
+            }
+            if (e.key === 'Escape') {
+                clearSelection();
+            }
+            if (e.key === 'a' && e.ctrlKey) {
+                e.preventDefault();
+                toggleSelectAll();
+            }
         });
 
         function handleFileSelect(e) {
@@ -755,6 +868,8 @@
                 totalPages = pdfDoc.numPages;
                 currentPage = 1;
                 deletedPages.clear();
+                selectedPages.clear();
+                lastSelectedPage = null;
 
                 // Update UI
                 uploadZone.style.display = 'none';
@@ -769,6 +884,7 @@
                 await generateThumbnails();
                 updateStats();
                 updateNavigation();
+                updateSelectionUI();
 
                 hideLoading();
                 showToast('PDF cargado correctamente');
@@ -780,22 +896,26 @@
         }
 
         async function renderPage(pageNum) {
-            const page = await pdfDoc.getPage(pageNum);
-            const canvas = pdfCanvas;
-            const ctx = canvas.getContext('2d');
+            try {
+                const page = await pdfDoc.getPage(pageNum);
+                const canvas = pdfCanvas;
+                const ctx = canvas.getContext('2d');
 
-            // Calculate scale for good quality
-            const viewport = page.getViewport({ scale: 1.5 });
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
+                // Calculate scale for good quality
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
 
-            await page.render({
-                canvasContext: ctx,
-                viewport: viewport
-            }).promise;
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
 
-            // Update delete button state
-            updateDeleteButton();
+                // Update delete button state
+                updateDeleteButton();
+            } catch (error) {
+                console.error('Error rendering page:', error);
+            }
         }
 
         async function generateThumbnails() {
@@ -810,6 +930,15 @@
                 item.dataset.page = i;
                 if (i === currentPage) item.classList.add('active');
                 if (deletedPages.has(i)) item.classList.add('deleted');
+                if (selectedPages.has(i)) item.classList.add('selected');
+
+                // Checkbox for selection
+                const checkbox = document.createElement('div');
+                checkbox.className = 'thumbnail-checkbox';
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleThumbnailClick(i, e);
+                });
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'thumbnail-canvas';
@@ -831,12 +960,26 @@
                     </button>
                 `;
 
+                item.appendChild(checkbox);
                 item.appendChild(canvas);
                 item.appendChild(info);
                 thumbnailsContainer.appendChild(item);
 
-                // Click to navigate
-                canvas.addEventListener('click', () => goToPage(i));
+                // Click on canvas to navigate or select
+                canvas.addEventListener('click', (e) => {
+                    if (e.ctrlKey || e.shiftKey) {
+                        handleThumbnailClick(i, e);
+                    } else {
+                        goToPage(i);
+                    }
+                });
+
+                // Click on item (not canvas) for selection
+                item.addEventListener('click', (e) => {
+                    if (e.target === item) {
+                        handleThumbnailClick(i, e);
+                    }
+                });
 
                 // Delete/Restore button
                 info.querySelector('.thumbnail-delete').addEventListener('click', (e) => {
@@ -844,6 +987,127 @@
                     togglePageDelete(i);
                 });
             }
+        }
+
+        function handleThumbnailClick(pageNum, event) {
+            if (event.shiftKey && lastSelectedPage !== null) {
+                // Shift+Click: Select range
+                const start = Math.min(lastSelectedPage, pageNum);
+                const end = Math.max(lastSelectedPage, pageNum);
+
+                if (!event.ctrlKey) {
+                    selectedPages.clear();
+                }
+
+                for (let i = start; i <= end; i++) {
+                    if (!deletedPages.has(i)) {
+                        selectedPages.add(i);
+                    }
+                }
+            } else if (event.ctrlKey) {
+                // Ctrl+Click: Toggle single selection
+                if (selectedPages.has(pageNum)) {
+                    selectedPages.delete(pageNum);
+                } else if (!deletedPages.has(pageNum)) {
+                    selectedPages.add(pageNum);
+                }
+                lastSelectedPage = pageNum;
+            } else {
+                // Normal click: Single selection
+                selectedPages.clear();
+                if (!deletedPages.has(pageNum)) {
+                    selectedPages.add(pageNum);
+                }
+                lastSelectedPage = pageNum;
+            }
+
+            updateThumbnailSelections();
+            updateSelectionUI();
+        }
+
+        function updateThumbnailSelections() {
+            document.querySelectorAll('.thumbnail-item').forEach(item => {
+                const pageNum = parseInt(item.dataset.page);
+                if (selectedPages.has(pageNum)) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function updateSelectionUI() {
+            const count = selectedPages.size;
+            deleteSelectedBtn.textContent = `Eliminar (${count})`;
+            deleteSelectedBtn.disabled = count === 0;
+
+            if (count > 0) {
+                selectionBadge.textContent = count;
+                selectionBadge.style.display = 'inline';
+            } else {
+                selectionBadge.style.display = 'none';
+            }
+
+            // Update select all button text
+            const availablePages = totalPages - deletedPages.size;
+            if (selectedPages.size === availablePages && availablePages > 0) {
+                selectAllBtn.textContent = 'Deseleccionar';
+            } else {
+                selectAllBtn.textContent = 'Seleccionar todo';
+            }
+        }
+
+        function toggleSelectAll() {
+            const availablePages = totalPages - deletedPages.size;
+
+            if (selectedPages.size === availablePages) {
+                // Deselect all
+                selectedPages.clear();
+            } else {
+                // Select all non-deleted pages
+                selectedPages.clear();
+                for (let i = 1; i <= totalPages; i++) {
+                    if (!deletedPages.has(i)) {
+                        selectedPages.add(i);
+                    }
+                }
+            }
+
+            updateThumbnailSelections();
+            updateSelectionUI();
+        }
+
+        function clearSelection() {
+            selectedPages.clear();
+            updateThumbnailSelections();
+            updateSelectionUI();
+        }
+
+        function deleteAllSelected() {
+            if (selectedPages.size === 0) return;
+
+            // Check if we would delete all pages
+            const remainingAfterDelete = totalPages - deletedPages.size - selectedPages.size;
+            if (remainingAfterDelete < 1) {
+                showToast('Debes mantener al menos una página', true);
+                return;
+            }
+
+            // Mark all selected as deleted
+            selectedPages.forEach(pageNum => {
+                deletedPages.add(pageNum);
+                updateThumbnailState(pageNum);
+            });
+
+            const count = selectedPages.size;
+            selectedPages.clear();
+
+            updateThumbnailSelections();
+            updateSelectionUI();
+            updateDeleteButton();
+            updateStats();
+
+            showToast(`${count} páginas marcadas para eliminar`);
         }
 
         function goToPage(pageNum) {
@@ -877,12 +1141,14 @@
                     return;
                 }
                 deletedPages.add(pageNum);
+                selectedPages.delete(pageNum); // Remove from selection if deleted
                 showToast(`Página ${pageNum} marcada para eliminar`);
             }
 
             updateThumbnailState(pageNum);
             updateDeleteButton();
             updateStats();
+            updateSelectionUI();
         }
 
         function updateThumbnailState(pageNum) {
@@ -891,6 +1157,7 @@
                 const btn = item.querySelector('.thumbnail-delete');
                 if (deletedPages.has(pageNum)) {
                     item.classList.add('deleted');
+                    item.classList.remove('selected');
                     btn.classList.add('thumbnail-restore');
                     btn.textContent = '↩';
                 } else {
@@ -945,10 +1212,6 @@
             const sizeBarFill = document.getElementById('sizeBarFill');
             sizeBarFill.style.width = `${sizeRatio * 100}%`;
 
-            const currentSizeEl = document.getElementById('currentSize');
-            currentSizeEl.classList.remove('warning', 'danger');
-            sizeBarFill.classList.remove('warning', 'danger');
-
             // Savings badge
             const savingsBadge = document.getElementById('savingsBadge');
             const savingsPercent = document.getElementById('savingsPercent');
@@ -977,6 +1240,7 @@
             if (deletedPages.size === 0) {
                 // Download original
                 downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'documento.pdf');
+                showToast('PDF descargado');
                 return;
             }
 
@@ -984,7 +1248,9 @@
 
             try {
                 // Use pdf-lib to remove pages
-                const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                    ignoreEncryption: true
+                });
 
                 // Get pages to remove (in reverse order to maintain indices)
                 const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
@@ -1008,7 +1274,16 @@
             } catch (error) {
                 console.error('Error generating PDF:', error);
                 hideLoading();
-                showToast('Error al generar el PDF', true);
+
+                // More specific error message
+                let errorMsg = 'Error al generar el PDF';
+                if (error.message && error.message.includes('encrypted')) {
+                    errorMsg = 'El PDF está encriptado y no se puede modificar';
+                } else if (error.message && error.message.includes('password')) {
+                    errorMsg = 'El PDF requiere contraseña';
+                }
+
+                showToast(errorMsg, true);
             }
         }
 
@@ -1029,6 +1304,8 @@
             currentPage = 1;
             totalPages = 0;
             deletedPages.clear();
+            selectedPages.clear();
+            lastSelectedPage = null;
             originalSize = 0;
 
             uploadZone.style.display = 'flex';
