@@ -190,12 +190,31 @@
         }
 
         .selection-hint {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: rgba(255, 255, 255, 0.5);
             text-align: center;
             padding: 0.25rem;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
+        }
+
+        .range-input {
+            flex: 1;
+            padding: 0.4rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 0.75rem;
+            outline: none;
+        }
+
+        .range-input:focus {
+            border-color: #3b82f6;
+        }
+
+        .range-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
         }
 
         .thumbnails-container {
@@ -731,10 +750,21 @@
             <aside class="sidebar" id="sidebar" style="display: none;">
                 <div class="sidebar-header">
                     <span class="sidebar-title">📑 Páginas <span class="selection-badge" id="selectionBadge" style="display: none;">0</span></span>
-                    <div class="selection-hint">Ctrl+Click = selección múltiple | Shift+Click = rango</div>
+                    <div class="selection-hint">Ctrl+Click múltiple | Shift+Click rango</div>
                     <div class="sidebar-actions">
-                        <button class="sidebar-btn select-all" id="selectAllBtn">Seleccionar todo</button>
-                        <button class="sidebar-btn delete-selected" id="deleteSelectedBtn" disabled>Eliminar (0)</button>
+                        <button class="sidebar-btn select-all" id="selectAllBtn">Todo</button>
+                        <button class="sidebar-btn select-all" id="invertSelectionBtn">Invertir</button>
+                    </div>
+                    <div class="sidebar-actions">
+                        <button class="sidebar-btn select-all" id="selectEvenBtn">Pares</button>
+                        <button class="sidebar-btn select-all" id="selectOddBtn">Impares</button>
+                    </div>
+                    <div class="sidebar-actions">
+                        <input type="text" class="range-input" id="rangeInput" placeholder="Ej: 1-5, 8, 10-15">
+                        <button class="sidebar-btn select-all" id="selectRangeBtn">Aplicar</button>
+                    </div>
+                    <div class="sidebar-actions">
+                        <button class="sidebar-btn delete-selected" id="deleteSelectedBtn" disabled>🗑️ Eliminar (0)</button>
                     </div>
                 </div>
                 <div class="thumbnails-container" id="thumbnailsContainer">
@@ -817,6 +847,11 @@
         const selectAllBtn = document.getElementById('selectAllBtn');
         const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
         const selectionBadge = document.getElementById('selectionBadge');
+        const invertSelectionBtn = document.getElementById('invertSelectionBtn');
+        const selectEvenBtn = document.getElementById('selectEvenBtn');
+        const selectOddBtn = document.getElementById('selectOddBtn');
+        const rangeInput = document.getElementById('rangeInput');
+        const selectRangeBtn = document.getElementById('selectRangeBtn');
 
         // Event Listeners
         uploadZone.addEventListener('click', () => fileInput.click());
@@ -850,6 +885,13 @@
         applyBtn.addEventListener('click', applyChanges);
         selectAllBtn.addEventListener('click', toggleSelectAll);
         deleteSelectedBtn.addEventListener('click', deleteAllSelected);
+        invertSelectionBtn.addEventListener('click', invertSelection);
+        selectEvenBtn.addEventListener('click', selectEvenPages);
+        selectOddBtn.addEventListener('click', selectOddPages);
+        selectRangeBtn.addEventListener('click', selectFromRange);
+        rangeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') selectFromRange();
+        });
 
         // Keyboard navigation
         document.addEventListener('keydown', (e) => {
@@ -1109,6 +1151,99 @@
             updateSelectionUI();
         }
 
+        function invertSelection() {
+            const newSelection = new Set();
+            for (let i = 1; i <= totalPages; i++) {
+                if (!deletedPages.has(i) && !selectedPages.has(i)) {
+                    newSelection.add(i);
+                }
+            }
+            selectedPages = newSelection;
+            updateThumbnailSelections();
+            updateSelectionUI();
+            showToast(`${selectedPages.size} páginas seleccionadas`);
+        }
+
+        function selectEvenPages() {
+            selectedPages.clear();
+            for (let i = 2; i <= totalPages; i += 2) {
+                if (!deletedPages.has(i)) {
+                    selectedPages.add(i);
+                }
+            }
+            updateThumbnailSelections();
+            updateSelectionUI();
+            showToast(`${selectedPages.size} páginas pares seleccionadas`);
+        }
+
+        function selectOddPages() {
+            selectedPages.clear();
+            for (let i = 1; i <= totalPages; i += 2) {
+                if (!deletedPages.has(i)) {
+                    selectedPages.add(i);
+                }
+            }
+            updateThumbnailSelections();
+            updateSelectionUI();
+            showToast(`${selectedPages.size} páginas impares seleccionadas`);
+        }
+
+        function selectFromRange() {
+            const input = rangeInput.value.trim();
+            if (!input) {
+                showToast('Escribe un rango (ej: 1-5, 8, 10-15)', true);
+                return;
+            }
+
+            try {
+                const pages = parseRange(input);
+                if (pages.length === 0) {
+                    showToast('Rango inválido', true);
+                    return;
+                }
+
+                selectedPages.clear();
+                let validCount = 0;
+                pages.forEach(p => {
+                    if (p >= 1 && p <= totalPages && !deletedPages.has(p)) {
+                        selectedPages.add(p);
+                        validCount++;
+                    }
+                });
+
+                updateThumbnailSelections();
+                updateSelectionUI();
+                rangeInput.value = '';
+                showToast(`${validCount} páginas seleccionadas`);
+            } catch (e) {
+                showToast('Formato inválido. Usa: 1-5, 8, 10-15', true);
+            }
+        }
+
+        function parseRange(input) {
+            const pages = [];
+            const parts = input.split(',');
+
+            for (const part of parts) {
+                const trimmed = part.trim();
+                if (trimmed.includes('-')) {
+                    const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()));
+                    if (!isNaN(start) && !isNaN(end)) {
+                        for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+                            pages.push(i);
+                        }
+                    }
+                } else {
+                    const num = parseInt(trimmed);
+                    if (!isNaN(num)) {
+                        pages.push(num);
+                    }
+                }
+            }
+
+            return [...new Set(pages)]; // Remove duplicates
+        }
+
         function deleteAllSelected() {
             if (selectedPages.size === 0) return;
 
@@ -1285,33 +1420,44 @@
 
             showLoading('Aplicando cambios...');
 
+            // Small delay to ensure UI updates
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             try {
                 // Use pdf-lib to remove pages and create new PDF
                 const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes, {
-                    ignoreEncryption: true
+                    ignoreEncryption: true,
+                    updateMetadata: false
                 });
 
                 // Get pages to remove (in reverse order to maintain indices)
                 const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
+                const removedCount = pagesToRemove.length;
+
+                console.log('Removing pages:', pagesToRemove);
 
                 for (const pageNum of pagesToRemove) {
-                    pdfLibDoc.removePage(pageNum - 1);
+                    if (pageNum - 1 < pdfLibDoc.getPageCount()) {
+                        pdfLibDoc.removePage(pageNum - 1);
+                    }
                 }
 
-                // Save the modified PDF
-                const modifiedPdfBytes = await pdfLibDoc.save();
+                // Save the modified PDF with compression
+                const modifiedPdfBytes = await pdfLibDoc.save({
+                    useObjectStreams: false
+                });
 
                 // Update state with new PDF
                 pdfBytes = new Uint8Array(modifiedPdfBytes);
                 originalSize = pdfBytes.length;
 
                 // Reload PDF for viewing
-                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice() }).promise;
                 totalPages = pdfDoc.numPages;
                 currentPage = Math.min(currentPage, totalPages);
+                if (currentPage < 1) currentPage = 1;
 
                 // Clear deleted and selected pages
-                const removedCount = deletedPages.size;
                 deletedPages.clear();
                 selectedPages.clear();
                 lastSelectedPage = null;
@@ -1326,14 +1472,17 @@
                 updateDeleteButton();
 
                 hideLoading();
-                showToast(`${removedCount} páginas eliminadas. PDF listo para descargar.`);
+                showToast(`${removedCount} páginas eliminadas. PDF listo.`);
             } catch (error) {
                 console.error('Error applying changes:', error);
+                console.error('Error details:', error.message, error.stack);
                 hideLoading();
 
-                let errorMsg = 'Error al aplicar cambios';
+                let errorMsg = 'Error al aplicar cambios: ' + (error.message || 'Error desconocido');
                 if (error.message && error.message.includes('encrypted')) {
                     errorMsg = 'El PDF está encriptado y no se puede modificar';
+                } else if (error.message && error.message.includes('password')) {
+                    errorMsg = 'El PDF requiere contraseña';
                 }
 
                 showToast(errorMsg, true);
@@ -1342,28 +1491,42 @@
 
         async function downloadModifiedPDF() {
             if (deletedPages.size === 0) {
-                // Download original
-                downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'documento.pdf');
-                showToast('PDF descargado');
+                // Download original - no need to process
+                try {
+                    downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'documento.pdf');
+                    showToast('PDF descargado');
+                } catch (e) {
+                    showToast('Error al descargar: ' + e.message, true);
+                }
                 return;
             }
 
             showLoading('Generando PDF modificado...');
 
+            // Small delay to ensure UI updates
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             try {
                 // Use pdf-lib to remove pages
                 const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes, {
-                    ignoreEncryption: true
+                    ignoreEncryption: true,
+                    updateMetadata: false
                 });
 
                 // Get pages to remove (in reverse order to maintain indices)
                 const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
 
+                console.log('Download - Removing pages:', pagesToRemove);
+
                 for (const pageNum of pagesToRemove) {
-                    pdfLibDoc.removePage(pageNum - 1); // pdf-lib uses 0-based index
+                    if (pageNum - 1 < pdfLibDoc.getPageCount()) {
+                        pdfLibDoc.removePage(pageNum - 1);
+                    }
                 }
 
-                const modifiedPdfBytes = await pdfLibDoc.save();
+                const modifiedPdfBytes = await pdfLibDoc.save({
+                    useObjectStreams: false
+                });
 
                 const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
                 downloadBlob(blob, 'documento_modificado.pdf');
@@ -1377,10 +1540,11 @@
                 showToast(`PDF descargado (${sizeMB} MB)`);
             } catch (error) {
                 console.error('Error generating PDF:', error);
+                console.error('Error details:', error.message, error.stack);
                 hideLoading();
 
                 // More specific error message
-                let errorMsg = 'Error al generar el PDF';
+                let errorMsg = 'Error al generar: ' + (error.message || 'Error desconocido');
                 if (error.message && error.message.includes('encrypted')) {
                     errorMsg = 'El PDF está encriptado y no se puede modificar';
                 } else if (error.message && error.message.includes('password')) {
