@@ -1,13 +1,18 @@
 {
-  "name": "calle-csv-excel-converter",
+  "name": "pdf-editor",
   "version": "1.0.0",
-  "description": "Plataforma Calle - Conversor de CSV a Excel con visualización de datos",
+  "description": "Plataforma para visualizar, editar y optimizar PDFs con tracking de tamaño en tiempo real",
   "main": "index.html",
   "scripts": {
-    "dev": "python3 -m http.server 8000",
-    "test": "echo \"No tests specified\""
+    "start": "npx serve .",
+    "dev": "npx serve ."
   },
-  "keywords": ["csv", "excel", "converter", "data"],
+  "keywords": [
+    "pdf",
+    "editor",
+    "viewer",
+    "optimizer"
+  ],
   "author": "",
   "license": "MIT"
 }
